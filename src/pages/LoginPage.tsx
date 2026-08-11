@@ -3,26 +3,34 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 export function LoginPage() {
-  const { isAuthenticated, login } = useAuth()
+  const { isAuthenticated, loading: authLoading, login } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
+  if (authLoading) return null
   if (isAuthenticated) return <Navigate to="/products" replace />
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    setLoading(true)
 
-    window.setTimeout(() => {
-      const ok = login(email, password)
+    if (!email.trim() || !password) {
+      setError('กรุณากรอกอีเมลและรหัสผ่าน')
+      return
+    }
+
+    setLoading(true)
+    try {
+      await login(email, password)
+      navigate('/products')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'เข้าสู่ระบบไม่สำเร็จ')
+    } finally {
       setLoading(false)
-      if (ok) navigate('/products')
-      else setError('กรุณากรอกอีเมลและรหัสผ่าน')
-    }, 400)
+    }
   }
 
   return (

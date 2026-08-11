@@ -1,6 +1,5 @@
 import type { Product, ProductCalc } from '../types/product'
-
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://127.0.0.1:8000'
+import { apiRequest } from './client'
 
 /** Shape จาก backend /products */
 export interface ProductApiRow {
@@ -38,20 +37,6 @@ export type ProductWriteBody = {
   currency_rate: number
   shipping_thailand: number
   platform_fee: number
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const { headers, ...rest } = init ?? {}
-  const res = await fetch(`${API_URL}${path}`, {
-    ...rest,
-    headers: { 'Content-Type': 'application/json', ...headers },
-  })
-  if (!res.ok) {
-    const detail = await res.text()
-    throw new Error(detail || res.statusText)
-  }
-  if (res.status === 204) return undefined as T
-  return res.json() as Promise<T>
 }
 
 const emptyCalc = (): ProductCalc => ({
@@ -124,19 +109,19 @@ export function mapProductToApi(
 }
 
 export async function fetchProducts() {
-  const rows = await request<ProductApiRow[]>('/products')
+  const rows = await apiRequest<ProductApiRow[]>('/products')
   return rows.map(mapProductFromApi)
 }
 
 export async function fetchProduct(id: string) {
-  const row = await request<ProductApiRow>(`/products/${id}`)
+  const row = await apiRequest<ProductApiRow>(`/products/${id}`)
   return mapProductFromApi(row)
 }
 
 export async function createProductApi(
   data: Parameters<typeof mapProductToApi>[0],
 ) {
-  const row = await request<ProductApiRow>('/products', {
+  const row = await apiRequest<ProductApiRow>('/products', {
     method: 'POST',
     body: JSON.stringify(mapProductToApi(data)),
   })
@@ -147,7 +132,7 @@ export async function updateProductApi(
   id: string,
   data: Parameters<typeof mapProductToApi>[0],
 ) {
-  const row = await request<ProductApiRow>(`/products/${id}`, {
+  const row = await apiRequest<ProductApiRow>(`/products/${id}`, {
     method: 'PUT',
     body: JSON.stringify(mapProductToApi(data)),
   })
@@ -155,5 +140,5 @@ export async function updateProductApi(
 }
 
 export async function deleteProductApi(id: string) {
-  return request<void>(`/products/${id}`, { method: 'DELETE' })
+  return apiRequest<void>(`/products/${id}`, { method: 'DELETE' })
 }

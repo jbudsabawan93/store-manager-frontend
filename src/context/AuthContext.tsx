@@ -4,36 +4,45 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { loginApi, logoutLocal } from '../api/auth'
+import { getAccessToken } from '../api/authStorage'
 
 interface AuthContextValue {
   isAuthenticated: boolean
-  login: (email: string, password: string) => boolean
-  logout: () => void
+  accessToken: string | null
+  loading: boolean
+  login: (email: string, password: string) => Promise<void>
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-const AUTH_KEY = 'storefront_auth'
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    () => localStorage.getItem(AUTH_KEY) === '1',
+  const [accessToken, setAccessTokenState] = useState<string | null>(() =>
+    getAccessToken(),
   )
+  const [loading] = useState(false)
 
-  const login = (email: string, password: string) => {
-    if (!email.trim() || !password.trim()) return false
-    localStorage.setItem(AUTH_KEY, '1')
-    setIsAuthenticated(true)
-    return true
+  const login = async (email: string, password: string) => {
+    const data = await loginApi(email, password)
+    setAccessTokenState(data.access_token)
   }
 
-  const logout = () => {
-    localStorage.removeItem(AUTH_KEY)
-    setIsAuthenticated(false)
+  const logout = async () => {
+    logoutLocal()
+    setAccessTokenState(null)
   }
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated: Boolean(accessToken),
+        accessToken,
+        loading,
+        login,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
